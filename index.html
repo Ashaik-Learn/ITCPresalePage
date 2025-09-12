@@ -193,10 +193,10 @@
       <div id="presale-widget">
         <h2 style="margin-bottom:13px;">ITC Presale Purchase</h2>
         <div style="font-size:1.09em;color:#43e6ff;font-weight:600;">Pay with PYUSD (Sepolia only)</div>
-        <div style="margin:10px 0 17px 0;color:#8ce0fc;">Connect your MetaMask, enter ITC tokens, then buy. Approval handled automatically.</div>
+        <div style="margin:10px 0 17px 0;color:#8ce0fc;">Connect MetaMask, enter ITC tokens, then buy.<br>Approval/payment is automatic. 1 ITC = 0.5 PYUSD (fixed).</div>
         <div class="input-label">Amount to buy (ITC):</div>
         <input type="number" id="itcInput" min="0" step="0.01" placeholder="ITC Amount" style="width:74%;padding:9px;border-radius:7px;font-size:1.12em;">
-        <div class="input-eq-label" style="margin:7px 0 14px 0;">1 ITC = 0.50 PYUSD</div>
+        <div class="input-eq-label" style="margin:7px 0 14px 0;">1 ITC = 0.50 PYUSD (hardcoded)</div>
         <button id="actionBtn">Connect Wallet to buy ITC</button>
         <div id="walletStatus" style="min-height:20px;"></div>
         <div id="buyResult" style="margin-top:13px;min-height:20px;"></div>
@@ -215,15 +215,14 @@ const erc20Abi = [
   "function allowance(address owner, address spender) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
-let provider, signer, user;
-let isConnected = false;
+let provider, signer, user, isConnected = false;
+const APPROVE_GAS = 60000, BUY_GAS = 150000;
 
 document.getElementById('actionBtn').onclick = async function() {
   const btn = document.getElementById('actionBtn');
   const buyResult = document.getElementById('buyResult');
   const status = document.getElementById('walletStatus');
   buyResult.textContent = "";
-  // Step 1: connect wallet
   if (!isConnected) {
     if (!window.ethereum) {
       status.textContent = "MetaMask is required.";
@@ -242,7 +241,6 @@ document.getElementById('actionBtn').onclick = async function() {
     }
     return;
   }
-  // Step 2: get input and check
   const itcAmt = document.getElementById('itcInput').value;
   if (!itcAmt || isNaN(itcAmt) || +itcAmt <= 0) {
     buyResult.textContent = "Invalid amount";
@@ -251,23 +249,21 @@ document.getElementById('actionBtn').onclick = async function() {
   btn.disabled = true;
   status.textContent = "";
   try {
-    // Step 3: check allowance
+    // 1 ITC = 0.5 PYUSD (hardcoded, 18 decimals for both tokens)
+    const pyusdAmount = ethers.utils.parseUnits((+itcAmt * 0.5).toString(), 18);
     const token = new ethers.Contract(PYUSD_ADDRESS, erc20Abi, signer);
-    const required = ethers.utils.parseUnits((itcAmt * 0.5).toString(), 18);
     const allowance = await token.allowance(user, PRESALE_CONTRACT);
-    if (allowance.lt(required)) {
-      // Needs approval
+    if (allowance.lt(pyusdAmount)) {
       buyResult.textContent = "Waiting for approval in MetaMask...";
-      const tx = await token.approve(PRESALE_CONTRACT, required);
+      const appTx = await token.approve(PRESALE_CONTRACT, pyusdAmount, {gasLimit: APPROVE_GAS});
       btn.textContent = "Approving PYUSD...";
-      await tx.wait();
+      await appTx.wait();
       btn.textContent = "Buy ITC";
       buyResult.textContent = "Approval done, sending buy transaction...";
     }
-    // Step 4: buy
     const contract = new ethers.Contract(PRESALE_CONTRACT, presaleAbi, signer);
-    const amount = ethers.utils.parseUnits(itcAmt.toString(), 18);
-    const buyTx = await contract.buyWithToken(amount, PYUSD_ADDRESS);
+    const itcAmountWei = ethers.utils.parseUnits(itcAmt, 18);
+    const buyTx = await contract.buyWithToken(itcAmountWei, PYUSD_ADDRESS, {gasLimit: BUY_GAS});
     btn.textContent = "Processing...";
     await buyTx.wait();
     btn.textContent = "Buy ITC";
@@ -278,12 +274,9 @@ document.getElementById('actionBtn').onclick = async function() {
   }
   btn.disabled = false;
 };
-
-// UI improvements: reset state on amount entry or reload
 document.getElementById('itcInput').oninput = function() {
   document.getElementById('buyResult').textContent = "";
 };
-
 window.addEventListener('load', ()=> {
   document.getElementById('actionBtn').textContent = "Connect Wallet to buy ITC";
 });
