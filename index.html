@@ -193,22 +193,20 @@
       <div id="presale-widget">
         <h2 style="margin-bottom:13px;">ITC Presale Purchase</h2>
         <div style="font-size:1.09em;color:#43e6ff;font-weight:600;">Pay with PYUSD (Sepolia only)</div>
-        <div style="margin:10px 0 17px 0;color:#8ce0fc;">Connect MetaMask, enter ITC tokens, approve, then buy.</div>
+        <div style="margin:10px 0 17px 0;color:#8ce0fc;">Connect your MetaMask, enter ITC tokens, then buy. Approval handled automatically.</div>
         <div class="input-label">Amount to buy (ITC):</div>
         <input type="number" id="itcInput" min="0" step="0.01" placeholder="ITC Amount" style="width:74%;padding:9px;border-radius:7px;font-size:1.12em;">
         <div class="input-eq-label" style="margin:7px 0 14px 0;">1 ITC = 0.50 PYUSD</div>
-        <button id="connectWalletBtn">Connect MetaMask</button>
+        <button id="actionBtn">Connect Wallet to buy ITC</button>
         <div id="walletStatus" style="min-height:20px;"></div>
-        <button id="approveBtn" style="margin-top:10px;display:none;">Approve PYUSD</button>
-        <button id="buyBtn" style="margin-top:10px;" disabled>Buy ITC</button>
         <div id="buyResult" style="margin-top:13px;min-height:20px;"></div>
       </div>
     </div>
   </div>
   <div id="footer-bar">Powered by IT Capitals, ON, Canada.</div>
 <script>
-const PRESALE_CONTRACT = "0xd1887abfadc7b5de18c54a547490c8dea792686b"; // Replace if needed
-const PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9"; // PYUSD Sepolia address
+const PRESALE_CONTRACT = "0xd1887abfadc7b5de18c54a547490c8dea792686b";
+const PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9";
 const presaleAbi = [
   "function buyWithToken(uint256 tokenAmount, address erc20Token) external"
 ];
@@ -217,87 +215,78 @@ const erc20Abi = [
   "function allowance(address owner, address spender) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
-let provider, signer, user, tokenApproved = false;
+let provider, signer, user;
+let isConnected = false;
 
-// Connect MetaMask
-document.getElementById('connectWalletBtn').onclick = async function() {
+document.getElementById('actionBtn').onclick = async function() {
+  const btn = document.getElementById('actionBtn');
+  const buyResult = document.getElementById('buyResult');
   const status = document.getElementById('walletStatus');
-  if (!window.ethereum) {
-    status.textContent = "MetaMask is required.";
+  buyResult.textContent = "";
+  // Step 1: connect wallet
+  if (!isConnected) {
+    if (!window.ethereum) {
+      status.textContent = "MetaMask is required.";
+      return;
+    }
+    try {
+      provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      user = await signer.getAddress();
+      isConnected = true;
+      status.textContent = "Connected: " + user;
+      btn.textContent = "Buy ITC";
+    } catch (err) {
+      status.textContent = "Connect failed: " + (err.message || err);
+    }
     return;
   }
-  try {
-    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    user = await signer.getAddress();
-    status.textContent = "Connected: " + user;
-    document.getElementById('buyBtn').disabled = false;
-    checkApproval();
-  } catch (err) {
-    status.textContent = "Connect failed: " + (err.message || err);
-  }
-};
-
-// Check if approval is needed
-async function checkApproval() {
+  // Step 2: get input and check
   const itcAmt = document.getElementById('itcInput').value;
-  const approveBtn = document.getElementById('approveBtn');
-  const buyBtn = document.getElementById('buyBtn');
-  if (!provider || !signer || !user) {approveBtn.style.display="none";buyBtn.disabled=true;return;}
+  if (!itcAmt || isNaN(itcAmt) || +itcAmt <= 0) {
+    buyResult.textContent = "Invalid amount";
+    return;
+  }
+  btn.disabled = true;
+  status.textContent = "";
   try {
+    // Step 3: check allowance
     const token = new ethers.Contract(PYUSD_ADDRESS, erc20Abi, signer);
-    const required = ethers.utils.parseUnits(((itcAmt || "0") * 0.5).toString(), 18);
+    const required = ethers.utils.parseUnits((itcAmt * 0.5).toString(), 18);
     const allowance = await token.allowance(user, PRESALE_CONTRACT);
-    if (allowance.gte(required) && +itcAmt > 0) {
-      approveBtn.style.display = "none";
-      buyBtn.disabled = false;
-      tokenApproved = true;
-    } else {
-      approveBtn.style.display = "block";
-      buyBtn.disabled = true;
-      tokenApproved = false;
+    if (allowance.lt(required)) {
+      // Needs approval
+      buyResult.textContent = "Waiting for approval in MetaMask...";
+      const tx = await token.approve(PRESALE_CONTRACT, required);
+      btn.textContent = "Approving PYUSD...";
+      await tx.wait();
+      btn.textContent = "Buy ITC";
+      buyResult.textContent = "Approval done, sending buy transaction...";
     }
-  } catch {approveBtn.style.display="block";buyBtn.disabled=true;tokenApproved=false;}
-}
-document.getElementById('itcInput').oninput = checkApproval;
-
-// Approve PYUSD for presale contract
-document.getElementById('approveBtn').onclick = async function() {
-  const approveBtn = document.getElementById('approveBtn');
-  approveBtn.disabled = true;
-  try {
-    const token = new ethers.Contract(PYUSD_ADDRESS, erc20Abi, signer);
-    const itcAmt = document.getElementById('itcInput').value;
-    const amount = ethers.utils.parseUnits((itcAmt*0.5).toString(), 18);
-    const tx = await token.approve(PRESALE_CONTRACT, amount);
-    approveBtn.textContent = "Approving...";
-    await tx.wait();
-    approveBtn.textContent = "Approve PYUSD";
-    tokenApproved = true;
-    checkApproval();
-  } catch(e) {
-    approveBtn.textContent = "Approve PYUSD";
-    alert("Approval failed: " + (e.message || e));
-    tokenApproved = false;
-  }
-  approveBtn.disabled = false;
-};
-
-// Buy ITC with approved PYUSD
-document.getElementById('buyBtn').onclick = async function() {
-  const buyResult = document.getElementById('buyResult');
-  buyResult.textContent = "";
-  if (!provider || !signer || !user) {buyResult.textContent = "Connect your wallet.";return;}
-  const itcAmt = document.getElementById('itcInput').value;
-  if (!itcAmt || isNaN(itcAmt) || +itcAmt <= 0) {buyResult.textContent = "Invalid amount.";return;}
-  try {
+    // Step 4: buy
     const contract = new ethers.Contract(PRESALE_CONTRACT, presaleAbi, signer);
     const amount = ethers.utils.parseUnits(itcAmt.toString(), 18);
-    const tx = await contract.buyWithToken(amount, PYUSD_ADDRESS);
-    buyResult.textContent = "✅ Transaction sent! TX: " + tx.hash;
-  } catch(e) {buyResult.textContent = "❌ " + (e.message || e);}
+    const buyTx = await contract.buyWithToken(amount, PYUSD_ADDRESS);
+    btn.textContent = "Processing...";
+    await buyTx.wait();
+    btn.textContent = "Buy ITC";
+    buyResult.textContent = "✅ Transaction complete! TX: " + buyTx.hash;
+  } catch(e) {
+    buyResult.textContent = "Error: " + (e.data && e.data.message ? e.data.message : e.message || e);
+    btn.textContent = isConnected ? "Buy ITC" : "Connect Wallet to buy ITC";
+  }
+  btn.disabled = false;
 };
+
+// UI improvements: reset state on amount entry or reload
+document.getElementById('itcInput').oninput = function() {
+  document.getElementById('buyResult').textContent = "";
+};
+
+window.addEventListener('load', ()=> {
+  document.getElementById('actionBtn').textContent = "Connect Wallet to buy ITC";
+});
 </script>
 </body>
 </html>
