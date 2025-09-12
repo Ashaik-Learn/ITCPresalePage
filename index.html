@@ -4,194 +4,299 @@
   <meta charset="UTF-8">
   <title>ITC Presale Purchase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Web3Modal v2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/web3modal@2.9.2/dist/index.js"></script>
-  <!-- Ethers.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --main-dark: #0c192d;
+      --gold: #d4af37;
+      --glass-bg: rgba(20, 36, 62, 0);
+    }
     body {
-      background: linear-gradient(120deg, #16233b, #2986e7 100%);
       min-height: 100vh;
       margin: 0;
-      font-family: 'Segoe UI', 'Arial', sans-serif;
+      padding: 0;
+      background: linear-gradient(180deg, #050d1f 0%, #092048 80%, #153564 100%);
+      font-family: 'Inter', 'Montserrat', Arial, sans-serif;
+      color: #eaf6fd;
+      overflow-x: hidden;
+      position: relative;
+    }
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 540px;
+      max-width: 100vw;
+      opacity: 0.07;
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+      filter: blur(1.2px) saturate(0.7);
+    }
+    .main-container {
       display: flex;
+      flex-direction: row;
       justify-content: center;
+      align-items: flex-start;
+      gap: 48px;
+      padding: 44px 0 0 0;
+      min-height: 92vh;
+      z-index: 2;
+      position: relative;
+    }
+    .left-side {
+      flex: 1.2;
+      max-width: 460px;
+      padding-left: 38px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2vh;
+    }
+    .logo-header {
+      display: flex;
       align-items: center;
+      margin-bottom: 27px;
+    }
+    .logo-header img {
+      height: 62px;
+      width: 62px;
+      border-radius: 14px;
+      object-fit: contain;
+      background: transparent;
+      padding: 0;
+      border: none;
+      filter: none;
+      box-shadow: none;
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, white 83%, transparent 100%);
+      mask-image: radial-gradient(circle at 50% 50%, white 83%, transparent 100%);
+    }
+    .logo-header h1 {
+      font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+      font-size: 2.09rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.14em;
+      margin: 0 0 0 19px;
+      padding: 0;
+    }
+    .info-card {
+      width: 100%;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 22px 0 6px 0;
+      font-size: 1.09rem;
+    }
+    .info-card strong, .info-card ul { color: #43e6ff; font-weight: 700;}
+    .info-card ul {
+      color: #43e6ff;
+      font-size: 1rem;
+      margin-bottom: 0;
+      margin-top: 10px;
+      padding-left: 24px;
+    }
+    .thanks-card { color: #ffc; background: transparent; font-size: 1.06rem; }
+    .thanks-card strong, .thanks-card span { color: #43e6ff;}
+    .right-side {
+      flex: 1.1;
+      min-width: 340px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      z-index: 2;
+      padding-right: 20px;
     }
     #presale-widget {
+      width: 370px;
+      border-radius: 18px;
       background: linear-gradient(135deg, #0a1a35 0%, #1e2d3d 35%, #2d6cf6 100%);
-      color: #fafcff;
-      border-radius: 22px;
-      padding: 36px 24px 32px 24px;
-      max-width: 370px;
-      box-shadow: 0px 4px 32px rgba(20,40,100,0.32);
+      box-shadow: 0px 4px 16px #111e2b27, 0 1px 3px #00ffe72c;
+      padding: 35px 20px 32px 20px;
+      color: #fff;
       text-align: center;
-      margin: 0 auto;
+      position: relative;
+      z-index: 3;
+      margin: 0;
+      border: 1px solid rgba(90,180,255,0.07);
+      backdrop-filter: blur(10px);
     }
-    #countdown {
-      font-size:18px; margin-bottom:8px;
-      color: #00ffe7;
-    }
-    .msg-main {
-      font-size:16px; margin-bottom:8px;
-    }
-    .msg-urgency {
-      color:#ffecb6; margin-bottom:14px; font-size:15px;
-    }
-    .input-row {
-      margin-bottom:10px; display:flex; gap:6px; justify-content:center;
-    }
-    input[type="number"] {
-      width:48%;
-      padding: 7px;
+    .input-label {
       font-size: 16px;
-      border-radius: 10px;
-      border: none;
-      background: #182a47;
-      color: #fafcff;
+      color: #a4cfff;
+      text-align:left;
+      margin: 7px 0 4px 0;
     }
+    .input-eq-label { font-size: 1rem; color: #44ffd1; margin-bottom: 7px; }
     button {
+      width: 100%;
+      border-radius: 14px;
       background: linear-gradient(90deg, #2038a8, #2d6cf6 70%);
       color: #fff;
       border: none;
-      font-size: 18px;
-      padding: 12px 32px;
-      margin-top: 6px;
-      border-radius: 13px;
-      cursor: pointer;
-      font-weight: 600;
-      letter-spacing: 1px;
-      transition: background 0.3s;
-      box-shadow: 0 8px 24px rgba(44,108,246,0.23);
+      font-size: 1.09rem;
+      padding: 13px 0;
+      cursor:pointer;
+      font-weight: 700;
+      box-shadow: 0 1px 14px 0 #2fc5ff19;
+      transition: background 0.23s;
+      margin-top: 10px;
     }
-    #buyWithEthBtn:disabled {
-      background: #2d3847; color: #aac2ff; cursor: not-allowed;
+    button:disabled { background: #25344f; color: #b3c0df;}
+    #walletStatus, #buyResult { min-height: 20px; font-size: 1rem;}
+    @media (max-width:1050px) {
+      .main-container { flex-direction:column; align-items:center; gap:28px; padding:17px 0 0 0; }
+      .left-side, .right-side {padding: 0 4vw; max-width:100vw;}
+      .right-side {align-items: center; padding-right:0;}
     }
-    #walletStatus {
-      color:#affcff; font-size:15px; margin-bottom:8px;
-      min-height:24px;
+    @media (max-width:500px) {
+      .main-container, #presale-widget { max-width:98vw; padding:11px;}
+      .logo-header img { height: 38px; width: 38px;}
+      .logo-header h1 { font-size: 1.11rem;}
     }
-    #buyResult {
-      margin-top:14px; color:#affcff; font-size:15px;
-      min-height:24px;
-    }
-    @media (max-width:480px) {
-      #presale-widget { max-width:97vw; padding:22px; }
-      input[type="number"] { font-size:15px; }
-      button { font-size:16px; padding:10px 12px;}
-      .msg-main, .msg-urgency { font-size:14px; }
+    #footer-bar {
+      margin-top:34px; color:#a3b7d9; font-size: 15px; letter-spacing:0.9px; text-align:center;
+      opacity: 0.92; margin-bottom:18px;
     }
   </style>
 </head>
 <body>
-<div id="presale-widget">
-  <h2 style="margin-bottom: 20px;">ITC Presale Purchase</h2>
-  <div id="countdown"></div>
-  <div class="msg-main">
-    <strong>Phase 1:</strong> <span style="color:#affcff;">$0.50 USDC / ITC</span>
+  <img src="fulllogo_transparent_nobuffer.png" class="watermark" alt="IT Capitals Watermark" />
+  <div class="main-container">
+    <div class="left-side">
+      <div class="logo-header">
+        <img src="fulllogo_transparent_nobuffer.png" alt="IT Capitals Logo"/>
+        <h1>IT CAPITALS</h1>
+      </div>
+      <div class="info-card">
+        <strong>Founded:</strong> February 2025<br>
+        IT Capitals specializes in <strong>blockchain development</strong> and <strong>DAPP creation</strong>, IT infrastructure solutions, and advanced website management for clients aiming for digital excellence.
+      </div>
+      <div class="info-card">
+        <strong>Introducing ITC Token:</strong><br>
+        A utility token for a next-generation digital rewards and services ecosystem.
+        <ul>
+          <li>Earn by referring clients or using IT Capitals’ solutions</li>
+          <li>Redeem ITC for premium services & exclusive features</li>
+          <li>Soon: Real-world benefits—partner discounts, events, more</li>
+        </ul>
+        Join ITC community & unlock unique value in Web3 and IT services.
+      </div>
+      <div class="info-card thanks-card">
+        <strong>With gratitude:</strong><br>
+        Special thanks to <span class="highlighted">Mr. MM</span> for visionary ideas and helping build the foundation of IT Capitals.
+      </div>
+    </div>
+    <div class="right-side">
+      <div id="presale-widget">
+        <h2 style="margin-bottom:13px;">ITC Presale Purchase</h2>
+        <div style="font-size:1.09em;color:#43e6ff;font-weight:600;">Pay with PYUSD (Sepolia only)</div>
+        <div style="margin:10px 0 17px 0;color:#8ce0fc;">Connect MetaMask, enter ITC tokens, approve, then buy.</div>
+        <div class="input-label">Amount to buy (ITC):</div>
+        <input type="number" id="itcInput" min="0" step="0.01" placeholder="ITC Amount" style="width:74%;padding:9px;border-radius:7px;font-size:1.12em;">
+        <div class="input-eq-label" style="margin:7px 0 14px 0;">1 ITC = 0.50 PYUSD</div>
+        <button id="connectWalletBtn">Connect MetaMask</button>
+        <div id="walletStatus" style="min-height:20px;"></div>
+        <button id="approveBtn" style="margin-top:10px;display:none;">Approve PYUSD</button>
+        <button id="buyBtn" style="margin-top:10px;" disabled>Buy ITC</button>
+        <div id="buyResult" style="margin-top:13px;min-height:20px;"></div>
+      </div>
+    </div>
   </div>
-  <div class="msg-urgency">
-    🚀 Hurry! Price goes up to $0.75 USDC next phase!
-  </div>
-  <button id="connectWalletBtn">Connect Wallet</button>
-  <div id="walletStatus"></div>
-  <div class="input-row">
-    <input id="tokenAmount" type="number" min="1" placeholder="ITC Amount" />
-    <input id="usdcAmount" type="number" min="0" step="0.01" placeholder="USDC Value" />
-  </div>
-  <button id="buyWithEthBtn" disabled>Buy ITC With ETH</button>
-  <div id="buyResult"></div>
-</div>
-
+  <div id="footer-bar">Powered by IT Capitals, ON, Canada.</div>
 <script>
-const PHASE1_DURATION = 180 * 24 * 60 * 60 * 1000; // 180 days in ms
-const PHASE1_PRICE_USDC = 0.50; // $0.50 USDC per ITC
-const PHASE2_PRICE_USDC = 0.75; // $0.75 next phase price
-const ETH_PRICE_USDC = 4302.55; // 1 ETH = 4302.55 USDC
-
-const PRESALE_CONTRACT = "0xd1887abfadc7b5de18c54a547490c8dea792686b";
-const ITC_TOKEN_DECIMALS = 18;
+const PRESALE_CONTRACT = "0xd1887abfadc7b5de18c54a547490c8dea792686b"; // Replace if needed
+const PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9"; // PYUSD Sepolia address
 const presaleAbi = [
-  "function buyWithETH(uint256 tokenAmount) external payable"
+  "function buyWithToken(uint256 tokenAmount, address erc20Token) external"
 ];
-const presaleStartTime = Date.now();
+const erc20Abi = [
+  "function approve(address spender, uint256 value) external returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)"
+];
+let provider, signer, user, tokenApproved = false;
 
-function updateCountdown() {
-  let now = Date.now();
-  let remainingMs = PHASE1_DURATION - (now - presaleStartTime);
-  if (remainingMs < 0) remainingMs = 0;
-  let totalSecs = Math.floor(remainingMs / 1000);
-  let days = Math.floor(totalSecs / (24 * 3600));
-  let hours = Math.floor((totalSecs % (24 * 3600)) / 3600);
-  let mins = Math.floor((totalSecs % 3600) / 60);
-  document.getElementById("countdown").textContent =
-    `Phase 1 ends in ${days} days, ${hours} hours, ${mins} minutes`;
-}
-setInterval(updateCountdown, 1000); updateCountdown();
-
-const tokenInput = document.getElementById("tokenAmount");
-const usdcInput = document.getElementById("usdcAmount");
-tokenInput.oninput = function() {
-  if (tokenInput.value && !isNaN(tokenInput.value) && tokenInput.value > 0) {
-    usdcInput.value = (tokenInput.value * PHASE1_PRICE_USDC).toFixed(2);
-  } else { usdcInput.value = ""; }
-};
-usdcInput.oninput = function() {
-  if (usdcInput.value && !isNaN(usdcInput.value) && usdcInput.value > 0) {
-    tokenInput.value = (usdcInput.value / PHASE1_PRICE_USDC).toFixed(2);
-  } else { tokenInput.value = ""; }
-};
-
-let provider, signer, connectedAddress;
-
-async function connectWallet() {
-  const walletStatus = document.getElementById("walletStatus");
-  walletStatus.textContent = "";
-
+// Connect MetaMask
+document.getElementById('connectWalletBtn').onclick = async function() {
+  const status = document.getElementById('walletStatus');
+  if (!window.ethereum) {
+    status.textContent = "MetaMask is required.";
+    return;
+  }
   try {
-    const web3Modal = new window.Web3Modal.default({
-      cacheProvider: false,
-      providerOptions: {} // Defaults to MetaMask + WalletConnect support
-    });
-    const instance = await web3Modal.connect();
-    provider = new ethers.providers.Web3Provider(instance);
+    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+    await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
-    connectedAddress = await signer.getAddress();
-    document.getElementById("buyWithEthBtn").disabled = false;
-    walletStatus.textContent = `Connected: ${connectedAddress}`;
+    user = await signer.getAddress();
+    status.textContent = "Connected: " + user;
+    document.getElementById('buyBtn').disabled = false;
+    checkApproval();
   } catch (err) {
-    walletStatus.textContent = "Wallet connection failed: " + (err.message || err);
+    status.textContent = "Connect failed: " + (err.message || err);
   }
+};
+
+// Check if approval is needed
+async function checkApproval() {
+  const itcAmt = document.getElementById('itcInput').value;
+  const approveBtn = document.getElementById('approveBtn');
+  const buyBtn = document.getElementById('buyBtn');
+  if (!provider || !signer || !user) {approveBtn.style.display="none";buyBtn.disabled=true;return;}
+  try {
+    const token = new ethers.Contract(PYUSD_ADDRESS, erc20Abi, signer);
+    const required = ethers.utils.parseUnits(((itcAmt || "0") * 0.5).toString(), 18);
+    const allowance = await token.allowance(user, PRESALE_CONTRACT);
+    if (allowance.gte(required) && +itcAmt > 0) {
+      approveBtn.style.display = "none";
+      buyBtn.disabled = false;
+      tokenApproved = true;
+    } else {
+      approveBtn.style.display = "block";
+      buyBtn.disabled = true;
+      tokenApproved = false;
+    }
+  } catch {approveBtn.style.display="block";buyBtn.disabled=true;tokenApproved=false;}
 }
+document.getElementById('itcInput').oninput = checkApproval;
 
-document.getElementById("connectWalletBtn").onclick = connectWallet;
+// Approve PYUSD for presale contract
+document.getElementById('approveBtn').onclick = async function() {
+  const approveBtn = document.getElementById('approveBtn');
+  approveBtn.disabled = true;
+  try {
+    const token = new ethers.Contract(PYUSD_ADDRESS, erc20Abi, signer);
+    const itcAmt = document.getElementById('itcInput').value;
+    const amount = ethers.utils.parseUnits((itcAmt*0.5).toString(), 18);
+    const tx = await token.approve(PRESALE_CONTRACT, amount);
+    approveBtn.textContent = "Approving...";
+    await tx.wait();
+    approveBtn.textContent = "Approve PYUSD";
+    tokenApproved = true;
+    checkApproval();
+  } catch(e) {
+    approveBtn.textContent = "Approve PYUSD";
+    alert("Approval failed: " + (e.message || e));
+    tokenApproved = false;
+  }
+  approveBtn.disabled = false;
+};
 
-document.getElementById("buyWithEthBtn").onclick = async () => {
-  const buyResult = document.getElementById("buyResult");
+// Buy ITC with approved PYUSD
+document.getElementById('buyBtn').onclick = async function() {
+  const buyResult = document.getElementById('buyResult');
   buyResult.textContent = "";
-  if (!provider || !signer || !connectedAddress) {
-    buyResult.textContent = "Please connect your wallet first.";
-    return;
-  }
-  const tokenAmountVal = tokenInput.value;
-  if (!tokenAmountVal || isNaN(tokenAmountVal) || tokenAmountVal <= 0) {
-    buyResult.textContent = "Enter a valid ITC amount.";
-    return;
-  }
+  if (!provider || !signer || !user) {buyResult.textContent = "Connect your wallet.";return;}
+  const itcAmt = document.getElementById('itcInput').value;
+  if (!itcAmt || isNaN(itcAmt) || +itcAmt <= 0) {buyResult.textContent = "Invalid amount.";return;}
   try {
     const contract = new ethers.Contract(PRESALE_CONTRACT, presaleAbi, signer);
-    const ethPricePerToken = PHASE1_PRICE_USDC / ETH_PRICE_USDC;
-    const ethValue = ethers.utils.parseEther(
-      (ethPricePerToken * tokenAmountVal).toString()
-    );
-    const tx = await contract.buyWithETH(
-      ethers.utils.parseUnits(tokenAmountVal.toString(), ITC_TOKEN_DECIMALS),
-      { value: ethValue }
-    );
-    buyResult.textContent = "✅ Transaction sent! Tx Hash: " + tx.hash;
-  } catch (err) {
-    buyResult.textContent = "❌ Error: " + (err.message || err);
-  }
+    const amount = ethers.utils.parseUnits(itcAmt.toString(), 18);
+    const tx = await contract.buyWithToken(amount, PYUSD_ADDRESS);
+    buyResult.textContent = "✅ Transaction sent! TX: " + tx.hash;
+  } catch(e) {buyResult.textContent = "❌ " + (e.message || e);}
 };
 </script>
 </body>
