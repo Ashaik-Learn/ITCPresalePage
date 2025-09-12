@@ -8,8 +8,76 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    /* ... all your CSS unchanged ... */
-    /* Keep your previous style block as-is! */
+    :root {
+      --main-dark: #0c192d;
+      --gold: #d4af37;
+      --info-blue: #202d48;
+      --success-green: #143d29;
+      --error-red: #392126;
+      --notif-radius: 12px;
+    }
+    body { min-height: 100vh; margin: 0; padding: 0;
+      background: linear-gradient(180deg, #050d1f 0%, #092048 80%, #153564 100%);
+      font-family: 'Inter', 'Montserrat', Arial, sans-serif;
+      color: #eaf6fd; overflow-x: hidden; position: relative; }
+    .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 540px; max-width: 100vw; opacity: 0.07; pointer-events: none; user-select: none; z-index: 1;
+      filter: blur(1.2px) saturate(0.7);}
+    .main-container { display: flex; flex-direction: row; justify-content: center;
+      align-items: flex-start; gap: 48px; padding: 44px 0 0 0; min-height: 92vh; z-index: 2; position: relative; }
+    .left-side { flex: 1.2; max-width: 460px; padding-left: 38px; display: flex; flex-direction: column; align-items: flex-start; gap: 2vh;}
+    .logo-header { display: flex; align-items: center; margin-bottom: 27px; }
+    .logo-header img { height: 62px; width: 62px; border-radius: 14px; object-fit: contain; background: transparent; padding: 0; border: none; filter: none; box-shadow: none;
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, white 83%, transparent 100%);
+      mask-image: radial-gradient(circle at 50% 50%, white 83%, transparent 100%);}
+    .logo-header h1 { font-family: 'Montserrat', 'Inter', Arial, sans-serif; font-size: 2.09rem; font-weight: 700; color: var(--gold); letter-spacing: 0.14em; margin: 0 0 0 19px; padding: 0;}
+    .info-card { width: 100%; background: transparent; border: none; box-shadow: none; padding: 22px 0 6px 0; font-size: 1.09rem;}
+    .info-card strong, .info-card ul { color: #43e6ff; font-weight: 700;}
+    .info-card ul {color: #43e6ff; font-size: 1rem; margin-bottom: 0; margin-top: 10px; padding-left: 24px;}
+    .thanks-card { color: #ffc; background: transparent; font-size: 1.06rem; }
+    .thanks-card strong, .thanks-card span { color: #43e6ff;}
+    .right-side { flex: 1.1; min-width: 340px; display: flex; flex-direction: column; align-items: flex-end; z-index: 2; padding-right: 20px; }
+    #presale-widget { width: 370px; border-radius: 18px; background: linear-gradient(135deg, #0a1a35 0%, #1e2d3d 35%, #2d6cf6 100%);
+      box-shadow: 0px 4px 16px #111e2b27, 0 1px 3px #00ffe72c;
+      padding: 35px 20px 32px 20px; color: #fff; text-align: center; position: relative; z-index: 3; margin: 0;
+      border: 1px solid rgba(90,180,255,0.07); backdrop-filter: blur(10px);}
+    .input-label { font-size: 16px; color: #a4cfff; text-align:left; margin: 7px 0 4px 0;}
+    .buy-row { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; width: 100%; justify-content:center;}
+    .buy-row input[type="number"] { width: 45%; padding: 10px; font-size: 1.05rem; border-radius: 10px; border: none; background: #182a47; color: #fafcff;
+      transition: border 0.14s; outline: none; text-align:right;}
+    .buy-row input[type="number"]:focus { border: 1.3px solid #22c1ff; background: #193869;}
+    .after-input-label { font-size: 1rem; color: #44ffd1; margin-bottom: 7px; font-weight:600;}
+    button { width: 100%; border-radius: 14px; background: linear-gradient(90deg, #2038a8, #2d6cf6 70%);
+      color: #fff; border: none; font-size: 1.09rem; padding: 13px 0; cursor:pointer; font-weight: 700;
+      box-shadow: 0 1px 14px 0 #2fc5ff19; transition: background 0.23s; margin-top: 10px;}
+    button:disabled { background: #25344f; color: #b3c0df;}
+    #walletStatus { min-height: 20px; font-size: 1rem;}
+    #notif {
+      border-radius: var(--notif-radius);
+      align-items: center; margin-top: 14px;
+      color:#fff; padding: 7px 9px;
+      animation: fadeInNotif .15s;
+      display: flex; justify-content: center;
+      font-weight: 600; min-height:18px;
+      font-size: 1.01em;
+      margin-bottom:4px;
+    }
+    .notif-info { background: var(--info-blue); color: #7ed6fd; }
+    .notif-success { background: var(--success-green); color: #60ffac; }
+    .notif-error { background: var(--error-red); color: #ffa2a2;}
+    @keyframes fadeInNotif { from {opacity:0;} to {opacity:1;} }
+    .balance-row {margin-bottom:9px; font-size:1.07em; color: #43e6ff; display: flex; align-items:center; justify-content:center; font-weight:600; gap:7px; letter-spacing:0.06em;}
+    .tx-row { margin-top: 9px; font-size:0.97em; display:flex; flex-direction:row; align-items:center; gap:7px; justify-content:center;}
+    .tx-hash { color:#fffd7f; background:#232b2f; border-radius:5px; padding:1px 8px; font-family:monospace; font-size:0.97em;}
+    .copy-btn { background:#192c4b; color:#79e0ff; padding:2px 7px; border-radius:4px; border:none; font-weight:600;}
+    .copy-btn:hover { background:#175171;}
+    @media (max-width:1050px) { .main-container { flex-direction:column; align-items:center; gap:28px; padding:17px 0 0 0; }
+      .left-side, .right-side {padding: 0 4vw; max-width:100vw;} .right-side {align-items: center; padding-right:0;} }
+    @media (max-width:500px) { .main-container, #presale-widget { max-width:98vw; padding:11px;}
+      .logo-header img { height: 38px; width: 38px;}
+      .logo-header h1 { font-size: 1.11rem;} }
+    #footer-bar { margin-top:34px; color:#a3b7d9; font-size: 15px; letter-spacing:0.9px; text-align:center;
+      opacity: 0.92; margin-bottom:18px;}
   </style>
 </head>
 <body>
@@ -42,28 +110,29 @@
     <div class="right-side">
       <div id="presale-widget">
         <div class="balance-row" id="itcBalance" style="display:none;">
-          Your ITC Balance: <span id="itcBalanceVal">0</span>
+          <span>Your ITC Balance:</span>
+          <span id="itcBalanceVal" style="color:#66eaff;font-weight:700;">0</span>
         </div>
         <h2 style="margin-bottom:13px;">ITC Token Presale</h2>
         <div style="font-size:1.09em;color:#43e6ff;font-weight:600;margin-bottom:10px;">Pay with ETH, PYUSD, or T2TO</div>
         <div style="font-size:1em;color:#8ce0fc;margin-bottom:10px;">
           <span style="color:#fff;">1 PYUSD = $1.00 = 2 ITC</span>
         </div>
-        <div class="buy-row">
+        <div class="buy-row" style="margin-bottom:19px;">
           <span class="input-label" style="margin:0;">Buy</span>
-          <input type="number" id="itcInput" min="0" step="1" placeholder="">
+          <input type="number" id="itcInput" min="0" step="1" placeholder="" style="margin-right:7px;">
           <span class="after-input-label">ITC</span>
         </div>
         <button id="actionBtn">Connect Wallet to buy ITC</button>
-        <button id="buyETHBtn" disabled>Buy with ETH</button>
-        <button id="buyPYUSDBtn" disabled>Buy with PYUSD</button>
-        <button id="buyT2TOBtn" disabled>Buy with T2TO</button>
-        <div id="walletStatus" style="min-height:20px;"></div>
-        <div id="notif"></div>
-        <div class="tx-row" id="txRow" style="display:none;">
-          <span>TX Hash:</span>
+        <button id="buyETHBtn" disabled style="margin-top:9px;">Buy with ETH</button>
+        <button id="buyPYUSDBtn" disabled style="margin-top:9px;">Buy with PYUSD</button>
+        <button id="buyT2TOBtn" disabled style="margin-top:9px;">Buy with T2TO</button>
+        <div id="walletStatus" style="min-height:20px;margin-top:8px;"></div>
+        <div id="notif" style="margin-top:13px;min-height:22px;border-radius:12px;font-size:1.01em;"></div>
+        <div class="tx-row" id="txRow" style="display:none;margin-top:9px;">
+          <span style="font-weight:600;">TX Hash:</span>
           <span class="tx-hash" id="txHash"></span>
-          <button class="copy-btn" id="copyBtn">Copy</button>
+          <button class="copy-btn" id="copyBtn" style="margin-left:7px;">Copy</button>
         </div>
       </div>
     </div>
@@ -169,14 +238,13 @@ async function buyWithToken(tokenAddr, payTokenEnum, priceUSD, tokenName = "TOKE
   let tokensNeeded;
   if (payTokenEnum === 2) {
     // ---- FIXED FOR PYUSD DECIMALS (6) ----
-    tokensNeeded = ethers.utils.parseUnits((+itcAmt/2).toString(), PYUSD_DECIMALS);
+    tokensNeeded = ethers.utils.parseUnits((+itcAmt/2).toString(), 6);
   } else if (payTokenEnum === 1) {
-    tokensNeeded = ethers.utils.parseUnits((+itcAmt).toString(), T2TO_DECIMALS);
+    tokensNeeded = ethers.utils.parseUnits((+itcAmt).toString(), 18);
   }
   try {
     const token = new ethers.Contract(tokenAddr, erc20Abi, signer);
     const balance = await token.balanceOf(user);
-    // Compare using the correct decimals per token
     if (balance.lt(tokensNeeded)) return showNotif(`Not enough ${tokenName} in wallet for this amount.`, "error");
     const allowance = await token.allowance(user, PRESALE_CONTRACT);
     if (allowance.lt(tokensNeeded)) {
