@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ITC Presale Purchase</title>
+  <title>ITC Token Presale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Change this to your correct path if the logo is not in root -->
+  <link rel="icon" type="image/png" href="fulllogo_transparent_nobuffer.png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -129,7 +131,34 @@
       text-align:left;
       margin: 7px 0 4px 0;
     }
-    .input-eq-label { font-size: 1rem; color: #44ffd1; margin-bottom: 7px; }
+    .buy-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .buy-row input[type="number"] {
+      width: 48%;
+      padding: 10px;
+      font-size: 1.05rem;
+      border-radius: 10px;
+      border: none;
+      background: #182a47;
+      color: #fafcff;
+      transition: border 0.14s;
+      outline: none;
+      text-align: right;
+    }
+    .buy-row input[type="number"]:focus {
+      border: 1.3px solid #22c1ff;
+      background: #193869;
+    }
+    .after-input-label {
+      font-size: 1.08em;
+      color: #b7eaff;
+      font-weight: 600;
+    }
     button {
       width: 100%;
       border-radius: 14px;
@@ -191,12 +220,14 @@
     </div>
     <div class="right-side">
       <div id="presale-widget">
-        <h2 style="margin-bottom:13px;">ITC Presale Purchase</h2>
-        <div style="font-size:1.09em;color:#43e6ff;font-weight:600;">Pay with PYUSD (Sepolia only)</div>
-        <div style="margin:10px 0 17px 0;color:#8ce0fc;">Connect MetaMask, enter ITC tokens, then buy.<br>Approval/payment is automatic. 1 ITC = 0.5 PYUSD (fixed).</div>
-        <div class="input-label">Amount to buy (ITC):</div>
-        <input type="number" id="itcInput" min="0" step="0.01" placeholder="ITC Amount" style="width:74%;padding:9px;border-radius:7px;font-size:1.12em;">
-        <div class="input-eq-label" style="margin:7px 0 14px 0;">1 ITC = 0.50 PYUSD (hardcoded)</div>
+        <h2 style="margin-bottom:13px;">ITC Token Presale</h2>
+        <div style="font-size:1.09em;color:#43e6ff;font-weight:600; margin-bottom: 10px;">Pay with PYUSD</div>
+        <div style="font-size:1em;color:#8ce0fc;margin-bottom:13px;">1 ITC = 0.5 PYUSD</div>
+        <div class="buy-row">
+          <span class="input-label" style="margin:0;">Buy</span>
+          <input type="number" id="itcInput" min="0" step="0.01" placeholder="" autocomplete="off">
+          <span class="after-input-label">ITC</span>
+        </div>
         <button id="actionBtn">Connect Wallet to buy ITC</button>
         <div id="walletStatus" style="min-height:20px;"></div>
         <div id="buyResult" style="margin-top:13px;min-height:20px;"></div>
@@ -269,7 +300,15 @@ document.getElementById('actionBtn').onclick = async function() {
     btn.textContent = "Buy ITC";
     buyResult.textContent = "✅ Transaction complete! TX: " + buyTx.hash;
   } catch(e) {
-    buyResult.textContent = "Error: " + (e.data && e.data.message ? e.data.message : e.message || e);
+    // Try to show useful revert message for debugging, log all error details
+    let customMsg = "Error: ";
+    if (e && e.data && e.data.message) customMsg += e.data.message;
+    else if (e && e.error && e.error.message) customMsg += e.error.message;
+    else if (e && e.reason) customMsg += e.reason;
+    else if (e && e.message) customMsg += e.message;
+    else customMsg += "transaction failed";
+    buyResult.textContent = customMsg;
+    console.error(e);
     btn.textContent = isConnected ? "Buy ITC" : "Connect Wallet to buy ITC";
   }
   btn.disabled = false;
