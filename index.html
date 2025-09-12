@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <title>ITC Token Presale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Change this to your correct path if the logo is not in root -->
   <link rel="icon" type="image/png" href="fulllogo_transparent_nobuffer.png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    /* preserved CSS as previously */
     :root {
       --main-dark: #0c192d;
       --gold: #d4af37;
@@ -67,13 +67,6 @@
       width: 62px;
       border-radius: 14px;
       object-fit: contain;
-      background: transparent;
-      padding: 0;
-      border: none;
-      filter: none;
-      box-shadow: none;
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, white 83%, transparent 100%);
-      mask-image: radial-gradient(circle at 50% 50%, white 83%, transparent 100%);
     }
     .logo-header h1 {
       font-family: 'Montserrat', 'Inter', Arial, sans-serif;
@@ -175,20 +168,12 @@
     }
     button:disabled { background: #25344f; color: #b3c0df;}
     #walletStatus, #buyResult { min-height: 20px; font-size: 1rem;}
-    @media (max-width:1050px) {
-      .main-container { flex-direction:column; align-items:center; gap:28px; padding:17px 0 0 0; }
-      .left-side, .right-side {padding: 0 4vw; max-width:100vw;}
-      .right-side {align-items: center; padding-right:0;}
-    }
-    @media (max-width:500px) {
-      .main-container, #presale-widget { max-width:98vw; padding:11px;}
-      .logo-header img { height: 38px; width: 38px;}
-      .logo-header h1 { font-size: 1.11rem;}
-    }
     #footer-bar {
       margin-top:34px; color:#a3b7d9; font-size: 15px; letter-spacing:0.9px; text-align:center;
       opacity: 0.92; margin-bottom:18px;
     }
+    @media (max-width:1050px) {.main-container { flex-direction:column;gap:28px;padding:17px 0 0 0; }.left-side, .right-side {padding:0 4vw;max-width:100vw;}.right-side{align-items: center; padding-right:0;}}
+    @media (max-width:500px) {.main-container,#presale-widget{max-width:98vw;padding:11px;}.logo-header img{height:38px;width:38px;}.logo-header h1{font-size:1.11rem;}}
   </style>
 </head>
 <body>
@@ -236,15 +221,17 @@
   </div>
   <div id="footer-bar">Powered by IT Capitals, ON, Canada.</div>
 <script>
-const PRESALE_CONTRACT = "0xd1887abfadc7b5de18c54a547490c8dea792686b";
-const PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9";
+const PRESALE_CONTRACT = "0xd1887abfadc7b5de18c54a547490c8dea792686b"; // your presale contract
+const PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9"; // sepolia PYUSD
 const presaleAbi = [
-  "function buyWithToken(uint256 tokenAmount, address erc20Token) external"
+  "function getCurrentUSDCPrice() view returns (uint256)",
+  "function buyWithToken(uint8,uint256) external",
 ];
 const erc20Abi = [
   "function approve(address spender, uint256 value) external returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
-  "function decimals() view returns (uint8)"
+  "function decimals() view returns (uint8)",
+  "function balanceOf(address account) view returns (uint256)"
 ];
 let provider, signer, user, isConnected = false;
 const APPROVE_GAS = 60000, BUY_GAS = 150000;
@@ -280,27 +267,40 @@ document.getElementById('actionBtn').onclick = async function() {
   btn.disabled = true;
   status.textContent = "";
   try {
-    // 1 ITC = 0.5 PYUSD (hardcoded, 18 decimals for both tokens)
-    const pyusdAmount = ethers.utils.parseUnits((+itcAmt * 0.5).toString(), 18);
+    const contract = new ethers.Contract(PRESALE_CONTRACT, presaleAbi, signer);
+    // 1. Get current ITC phase price in USDC, 6 decimals (e.g., 50000 means $0.50)
+    const priceUSDC = await contract.getCurrentUSDCPrice(); // 6 decimals
+    const itcAmountWei = ethers.utils.parseUnits(itcAmt, 18); // ITC in 18 decimals
+    // 2. Calculate total USDC needed (see contract math)
+    // totalUSDC = priceUSDC * tokenAmount / 1e18; payment = totalUSDC * 1e12;
+    const totalUSDC = ethers.BigNumber.from(priceUSDC).mul(itcAmountWei).div(ethers.BigNumber.from("1000000000000000000"));
+    const pyusdNeeded = totalUSDC.mul("1000000000000"); // 1e12 adjustment
+    // 3. Check user has enough PYUSD
     const token = new ethers.Contract(PYUSD_ADDRESS, erc20Abi, signer);
+    const balance = await token.balanceOf(user);
+    if (balance.lt(pyusdNeeded)) {
+      buyResult.textContent = "Insufficient PYUSD balance";
+      btn.disabled = false;
+      return;
+    }
+    // 4. Check allowance, approve if needed
     const allowance = await token.allowance(user, PRESALE_CONTRACT);
-    if (allowance.lt(pyusdAmount)) {
+    if (allowance.lt(pyusdNeeded)) {
       buyResult.textContent = "Waiting for approval in MetaMask...";
-      const appTx = await token.approve(PRESALE_CONTRACT, pyusdAmount, {gasLimit: APPROVE_GAS});
+      const appTx = await token.approve(PRESALE_CONTRACT, pyusdNeeded, {gasLimit: APPROVE_GAS});
       btn.textContent = "Approving PYUSD...";
       await appTx.wait();
       btn.textContent = "Buy ITC";
       buyResult.textContent = "Approval done, sending buy transaction...";
     }
-    const contract = new ethers.Contract(PRESALE_CONTRACT, presaleAbi, signer);
-    const itcAmountWei = ethers.utils.parseUnits(itcAmt, 18);
-    const buyTx = await contract.buyWithToken(itcAmountWei, PYUSD_ADDRESS, {gasLimit: BUY_GAS});
+    // 5. Call buyWithToken with pyusd (payToken=2, amount=itcAmountWei)
+    // contract.buyWithToken(PaymentToken.PYUSD, itcAmountWei)
+    const buyTx = await contract.buyWithToken(2, itcAmountWei, {gasLimit: BUY_GAS});
     btn.textContent = "Processing...";
     await buyTx.wait();
     btn.textContent = "Buy ITC";
     buyResult.textContent = "✅ Transaction complete! TX: " + buyTx.hash;
   } catch(e) {
-    // Try to show useful revert message for debugging, log all error details
     let customMsg = "Error: ";
     if (e && e.data && e.data.message) customMsg += e.data.message;
     else if (e && e.error && e.error.message) customMsg += e.error.message;
